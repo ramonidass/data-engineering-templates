@@ -1,0 +1,6 @@
+environment = "test"
+{% if cloud == 'gcp' -%}
+project_id  = "REPLACE-with-test-project-id"
+{%- elif cloud == 'azure' -%}
+resource_group_name = "rg-{{ project_name }}-test"
+{%- endif %}

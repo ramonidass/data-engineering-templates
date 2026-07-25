@@ -1,0 +1,45 @@
+[project]
+name = "{{ project_name }}"
+version = "0.1.0"
+description = "{{ product_name_display }} dbt pipeline"
+readme = "README.md"
+requires-python = ">={{ python_version }}"
+dependencies = [
+    "dbt-core>=1.10",
+{% if adapter == 'bigquery' %}
+    "dbt-bigquery>=1.10",
+{% elif adapter == 'snowflake' %}
+    "dbt-snowflake>=1.10",
+{% elif adapter == 'databricks' %}
+    "dbt-databricks>=1.10",
+{% elif adapter == 'duckdb' %}
+    "dbt-duckdb>=1.9",
+{% endif %}
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pre-commit>=4.0",
+    "ruff>=0.11",
+    "mypy>=1.14",
+    "python-dotenv>=1.0",
+    "sqlfluff>=3.3",
+    "sqlfluff-templater-dbt>=3.3",
+    "yamllint>=1.35",
+]
+
+[tool.ruff]
+line-length = {{ python_line_length }}
+target-version = "py{{ python_version | replace('.', '') }}"
+extend-exclude = [".venv", ".direnv", "target", "dbt_packages"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM", "PTH"]
+
+[tool.mypy]
+strict = true
+exclude = ["\\.venv", "\\.direnv", "target", "dbt_packages"]
+
+[tool.uv]
+package = false

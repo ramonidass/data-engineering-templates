@@ -1,0 +1,52 @@
+# {{ product_name_display }} — dbt pipeline
+
+dbt pipeline for {{ product_name_display }}, running on **{{ adapter }}**.
+
+## Getting started
+
+```sh
+just dev-setup       # nix shell + uv sync + pre-commit + dbt deps + .env skeleton
+nix develop          # or `direnv allow` for automatic activation
+```
+
+Fill in the generated `.env`, then:
+
+{% if adapter == 'bigquery' -%}
+```sh
+just authenticate    # gcloud application-default login
+```
+{%- endif %}
+
+```sh
+just build-empty     # validate all SQL against the warehouse without moving data
+just unit-tests      # run dbt unit tests
+just run             # materialize models
+```
+
+## Layout
+
+```
+models/
+├── staging/     # 1:1 with sources — rename, cast, light cleaning. Views.
+└── marts/       # business-facing facts and dimensions. Tables.
+```
+
+Conventions:
+
+- `stg_<source>__<entity>` for staging, `fct_`/`dim_` for marts.
+- Every model has a `schema.yaml` entry with description and at least
+  `unique` + `not_null` on its key.
+- Business logic gets a dbt **unit test** (see
+  `models/marts/schema.yaml`) — they run with `--empty` builds, so CI never
+  needs production data.
+- Warehouse connection comes from environment variables only
+  (see `profiles.yml`); nothing secret lives in the repo.
+
+## Commands
+
+```sh
+just lint      # ruff + sqlfluff + yamllint
+just fmt       # auto-fix all of the above
+just ci        # what CI runs: lint + unit tests
+just build     # full build with data tests
+```

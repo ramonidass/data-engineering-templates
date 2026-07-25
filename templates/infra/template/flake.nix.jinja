@@ -1,0 +1,68 @@
+{
+  description = "{{ product_name_display }} infrastructure development environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+  };
+
+  outputs = { self, nixpkgs, }:
+    let
+      allSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+
+      forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
+        pkgs = import nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true; # terraform is BUSL-licensed
+          };
+        };
+      });
+    in
+    {
+      devShells = forAllSystems ({ pkgs }: {
+        default = pkgs.mkShell {
+          packages = (with pkgs; [
+            just
+            {{ iac_tool }}
+            tflint
+            terraform-docs
+            trivy
+{% if cloud == 'gcp' %}
+            google-cloud-sdk
+{% elif cloud == 'aws' %}
+            awscli2
+{% elif cloud == 'azure' %}
+            azure-cli
+{% endif %}
+
+            # pre-commit & linting
+            git-secrets
+            pre-commit
+            shellcheck
+          ]);
+          shellHook = ''
+            # Project-local cache dir (gitignored via .direnv/). Note: never
+            # override XDG_RUNTIME_DIR here — logind owns it, and relocating it
+            # hides the Wayland/D-Bus/PipeWire sockets from anything launched
+            # in this shell (breaks clipboard, audio, portals).
+            mkdir -p "$PWD/.direnv/cache"
+            export XDG_CACHE_HOME="$PWD/.direnv/cache"
+
+            # Load .env for `nix develop` users (direnv users get it via .envrc).
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
+            fi
+
+            echo "🏗️  {{ product_name_display }} infra env active — run 'just' for commands."
+          '';
+          NIX_SHELL = "1";
+        };
+      });
+    };
+}

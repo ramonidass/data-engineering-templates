@@ -1,0 +1,59 @@
+set dotenv-load
+
+tf := "{{ tf_binary }}"
+{% raw %}
+help:
+    @just --list
+
+[doc('Initialise terraform for an environment (dev, test or prod).')]
+init env:
+    cd terraform && {{ tf }} init -reconfigure -backend-config=environments/{{ env }}/backend.hcl
+
+[doc('Validate formatting and configuration.')]
+lint:
+    {{ tf }} fmt -check -recursive terraform
+    cd terraform && tflint --recursive
+    cd terraform && {{ tf }} validate
+
+fmt:
+    {{ tf }} fmt -recursive terraform
+
+[doc('Scan for security misconfigurations.')]
+scan:
+    trivy config terraform
+
+[doc('Plan changes for an environment.')]
+plan env: (init env)
+    cd terraform && {{ tf }} plan -var-file=environments/{{ env }}/terraform.tfvars -out={{ env }}.tfplan
+
+[doc('Apply the previously created plan for an environment.')]
+apply env:
+    cd terraform && {{ tf }} apply {{ env }}.tfplan
+
+[doc('Regenerate module documentation into terraform/README.md.')]
+docs:
+    terraform-docs markdown table terraform --output-file README.md
+
+ci: lint scan
+
+pre-commit-setup:
+    pre-commit install
+    pre-commit install --hook-type commit-msg
+
+pre-commit:
+    pre-commit run --all-files
+
+dev-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v nix &> /dev/null; then
+        echo "❌ Nix is not installed. Install it first:"
+        echo "   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+        exit 1
+    fi
+    nix develop --command bash -c '
+        set -e
+        just pre-commit-setup
+        echo "✅ dev environment ready — try: just plan dev"
+    '
+{% endraw %}

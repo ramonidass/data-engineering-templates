@@ -1,0 +1,42 @@
+# {{ product_name_display }} — API
+
+FastAPI service for {{ product_name_display }}.
+
+## Getting started
+
+```sh
+just dev-setup       # nix shell + uv sync + pre-commit + .env skeleton
+nix develop          # or `direnv allow` for automatic activation
+just serve           # http://localhost:8000/docs
+```
+
+## Layout
+
+```
+src/{{ package_name }}/
+├── app.py        # app factory + lifespan (open/close shared resources here)
+├── config.py     # pydantic-settings; all config via {{ package_name | upper }}__* env vars
+├── schemas.py    # pydantic request/response models — validate at the edge
+└── routers/      # thin route handlers, one module per resource
+tests/            # httpx TestClient tests; run in-process, no server needed
+```
+
+The `items` router is a working example backed by an in-memory dict. Swap the
+store for your real backend and keep the shape: routers thin, validation in
+schemas, storage behind a small interface.
+
+## Commands
+
+```sh
+just lint          # ruff check + format check
+just type-check    # mypy --strict
+just test          # pytest with coverage
+just ci            # all of the above — same as CI
+just docker-run    # build and run the production image locally
+```
+
+## Configuration
+
+All settings come from the environment with the `{{ package_name | upper }}__`
+prefix (see `config.py`). `.env` is local-only and gitignored;
+`just create-env-file` writes a documented skeleton.

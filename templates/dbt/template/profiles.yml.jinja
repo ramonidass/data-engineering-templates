@@ -1,0 +1,46 @@
+{{ project_name_snake }}:
+  target: local
+  outputs:
+{% if adapter == 'bigquery' %}
+    local:
+      type: bigquery
+      method: oauth
+      project: "{% raw %}{{ env_var('DBT__GCP_PROJECT') }}{% endraw %}"
+      dataset: "{% raw %}{{ env_var('DBT__TARGET_DATASET') }}{% endraw %}"
+      location: "{% raw %}{{ env_var('DBT__LOCATION', 'EU') }}{% endraw %}"
+      threads: 4
+      job_execution_timeout_seconds: 600
+    ci:
+      type: bigquery
+      method: oauth
+      impersonate_service_account: "{% raw %}{{ env_var('DBT__IMPERSONATE_SA', '') }}{% endraw %}"
+      project: "{% raw %}{{ env_var('DBT__GCP_PROJECT') }}{% endraw %}"
+      dataset: "{% raw %}{{ env_var('DBT__TARGET_DATASET') }}{% endraw %}"
+      location: "{% raw %}{{ env_var('DBT__LOCATION', 'EU') }}{% endraw %}"
+      threads: 8
+{% elif adapter == 'snowflake' %}
+    local:
+      type: snowflake
+      account: "{% raw %}{{ env_var('DBT__SNOWFLAKE_ACCOUNT') }}{% endraw %}"
+      user: "{% raw %}{{ env_var('DBT__SNOWFLAKE_USER') }}{% endraw %}"
+      authenticator: externalbrowser
+      role: "{% raw %}{{ env_var('DBT__SNOWFLAKE_ROLE') }}{% endraw %}"
+      warehouse: "{% raw %}{{ env_var('DBT__SNOWFLAKE_WAREHOUSE') }}{% endraw %}"
+      database: "{% raw %}{{ env_var('DBT__SNOWFLAKE_DATABASE') }}{% endraw %}"
+      schema: "{% raw %}{{ env_var('DBT__TARGET_SCHEMA') }}{% endraw %}"
+      threads: 4
+{% elif adapter == 'databricks' %}
+    local:
+      type: databricks
+      host: "{% raw %}{{ env_var('DBT__DATABRICKS_HOST') }}{% endraw %}"
+      http_path: "{% raw %}{{ env_var('DBT__DATABRICKS_HTTP_PATH') }}{% endraw %}"
+      token: "{% raw %}{{ env_var('DBT__DATABRICKS_TOKEN') }}{% endraw %}"
+      catalog: "{% raw %}{{ env_var('DBT__DATABRICKS_CATALOG') }}{% endraw %}"
+      schema: "{% raw %}{{ env_var('DBT__TARGET_SCHEMA') }}{% endraw %}"
+      threads: 4
+{% elif adapter == 'duckdb' %}
+    local:
+      type: duckdb
+      path: "{% raw %}{{ env_var('DBT__DUCKDB_PATH', 'local.duckdb') }}{% endraw %}"
+      threads: 4
+{% endif %}

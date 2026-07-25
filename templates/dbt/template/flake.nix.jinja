@@ -1,0 +1,74 @@
+{
+  description = "{{ product_name_display }} dbt pipeline development environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+  };
+
+  outputs = { self, nixpkgs, }:
+    let
+      allSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+
+      forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
+        pkgs = import nixpkgs {
+          inherit system;
+          config = { allowUnfree = true; };
+        };
+      });
+    in
+    {
+      devShells = forAllSystems ({ pkgs }: {
+        default = pkgs.mkShell {
+          packages = (with pkgs; [
+            just
+            python{{ python_version.split('.')[:2] | join('') }}
+            uv
+            pkgs.stdenv.cc.cc
+{% if adapter == 'bigquery' %}
+            google-cloud-sdk
+{% endif %}
+
+            # pre-commit & linting
+            git-secrets
+            pre-commit
+            yamllint
+          ]);
+          shellHook = ''
+            # Nix python apps can leak their deps onto PYTHONPATH, shadowing the
+            # uv .venv. The wrapped binaries carry their own paths.
+            unset PYTHONPATH
+
+            # Project-local cache dir (gitignored via .direnv/). Note: never
+            # override XDG_RUNTIME_DIR here — logind owns it, and relocating it
+            # hides the Wayland/D-Bus/PipeWire sockets from anything launched
+            # in this shell (breaks clipboard, audio, portals).
+            mkdir -p "$PWD/.direnv/cache"
+            export XDG_CACHE_HOME="$PWD/.direnv/cache"
+
+            # dbt needs a compiler runtime linked.
+            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${pkgs.lib.makeLibraryPath [
+              pkgs.stdenv.cc.cc
+            ]}"
+
+            # uv configuration: local .venv, always Nix's python.
+            export UV_PROJECT_ENVIRONMENT=".venv"
+            export UV_PYTHON_DOWNLOADS="never"
+
+            # Load .env for `nix develop` users (direnv users get it via .envrc).
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
+            fi
+
+            echo "🚀 {{ product_name_display }} dbt env active — run 'just' for commands."
+          '';
+          NIX_SHELL = "1";
+        };
+      });
+    };
+}

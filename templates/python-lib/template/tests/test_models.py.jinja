@@ -1,0 +1,25 @@
+import pytest
+from pydantic import ValidationError
+
+from {{ package_name }}.models import ExampleRecord, RecordStatus
+
+
+def test_record_defaults_to_active() -> None:
+    record = ExampleRecord(name="example")
+
+    assert record.status is RecordStatus.ACTIVE
+
+
+def test_record_rejects_empty_name() -> None:
+    with pytest.raises(ValidationError):
+        ExampleRecord(name="")
+
+
+def test_archived_returns_new_instance() -> None:
+    record = ExampleRecord(name="example")
+
+    archived = record.archived()
+
+    assert archived.status is RecordStatus.ARCHIVED
+    assert record.status is RecordStatus.ACTIVE
+    assert archived.id == record.id

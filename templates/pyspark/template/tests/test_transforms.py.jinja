@@ -1,0 +1,39 @@
+from datetime import datetime
+
+from pyspark.sql import SparkSession
+
+from {{ package_name }}.schemas import EVENT_SCHEMA
+from {{ package_name }}.transforms import daily_totals, deduplicate_events
+
+
+def test_deduplicate_events_keeps_latest(spark: SparkSession) -> None:
+    df = spark.createDataFrame(
+        [
+            ("a", datetime(2026, 1, 1, 9, 0), 1.0),
+            ("a", datetime(2026, 1, 1, 12, 0), 2.0),
+            ("b", datetime(2026, 1, 1, 10, 0), 3.0),
+        ],
+        schema=EVENT_SCHEMA,
+    )
+
+    result = {row["event_id"]: row["value"] for row in deduplicate_events(df).collect()}
+
+    assert result == {"a": 2.0, "b": 3.0}
+
+
+def test_daily_totals_aggregates_per_day(spark: SparkSession) -> None:
+    df = spark.createDataFrame(
+        [
+            ("a", datetime(2026, 1, 1, 9, 0), 1.0),
+            ("b", datetime(2026, 1, 1, 17, 0), 2.0),
+            ("c", datetime(2026, 1, 2, 8, 0), 4.0),
+        ],
+        schema=EVENT_SCHEMA,
+    )
+
+    rows = daily_totals(df).collect()
+
+    assert [(str(r["event_date"]), r["event_count"], r["total_value"]) for r in rows] == [
+        ("2026-01-01", 2, 3.0),
+        ("2026-01-02", 1, 4.0),
+    ]

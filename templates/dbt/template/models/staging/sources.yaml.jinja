@@ -1,0 +1,15 @@
+version: 2
+
+sources:
+  - name: raw
+    description: Landing zone for {{ product_name_display }} source data.
+    # schema / database of the raw layer; adjust to your ingestion target
+    schema: raw
+    tables:
+      - name: example_events
+        description: Replace with your first real source table.
+        columns:
+          - name: id
+            description: Primary key of the event.
+          - name: occurred_at
+            description: Event timestamp (UTC).
