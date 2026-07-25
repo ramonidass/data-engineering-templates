@@ -1,0 +1,57 @@
+set dotenv-load
+
+help:
+    @just --list
+
+run:
+    uv run run-pipeline
+
+lint:
+    uv run ruff check .
+    uv run ruff format --check .
+
+fmt:
+    uv run ruff check --fix .
+    uv run ruff format .
+
+type-check:
+    uv run mypy src tests
+
+test:
+    uv run pytest
+
+ci: lint type-check test
+
+pre-commit-setup:
+    uv run pre-commit install
+    uv run pre-commit install --hook-type commit-msg
+
+pre-commit:
+    uv run pre-commit run --all-files
+
+create-env-file:
+    #!/usr/bin/env bash
+    if [ -f .env ]; then
+        echo ".env already exists; delete it first to regenerate"; exit 0
+    fi
+    cat > .env <<'EOF'
+    {{ package_name | upper }}__INPUT_PATH=data/input/events.jsonl
+    {{ package_name | upper }}__OUTPUT_PATH=data/output/daily_totals.jsonl
+    EOF
+    echo ".env created."
+
+dev-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v nix &> /dev/null; then
+        echo "Nix is not installed; enter your normal Python environment and run 'uv sync'."
+        exit 1
+    fi
+    nix develop --command bash -c '
+        set -e
+        uv lock
+        uv sync --locked
+        just pre-commit-setup
+        just create-env-file
+        echo "pipeline environment ready — try: just test"
+    '

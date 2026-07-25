@@ -1,0 +1,24 @@
+import logging
+
+from {{ package_name }}.adapters import AtomicJsonLinesSink, JsonLinesEventSource
+from {{ package_name }}.config import PipelineSettings
+from {{ package_name }}.pipeline import run_pipeline
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    settings = PipelineSettings()
+    result = run_pipeline(
+        JsonLinesEventSource(settings.input_path),
+        AtomicJsonLinesSink(settings.output_path),
+    )
+    logging.info(
+        "pipeline complete input=%d duplicates=%d output=%d",
+        result.input_count,
+        result.duplicate_count,
+        result.output_count,
+    )
+
+
+if __name__ == "__main__":
+    main()

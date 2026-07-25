@@ -1,0 +1,76 @@
+from datetime import UTC, datetime
+from decimal import Decimal
+from pathlib import Path
+
+from {{ package_name }}.adapters import AtomicJsonLinesSink, JsonLinesEventSource
+from {{ package_name }}.models import Event
+from {{ package_name }}.pipeline import run_pipeline
+from {{ package_name }}.transforms import daily_totals, deduplicate_latest
+
+
+def test_deduplicate_latest_is_deterministic() -> None:
+    events = [
+        Event(
+            event_id="a",
+            occurred_at=datetime(2026, 1, 1, 9, tzinfo=UTC),
+            value=Decimal("1"),
+        ),
+        Event(
+            event_id="a",
+            occurred_at=datetime(2026, 1, 1, 12, tzinfo=UTC),
+            value=Decimal("2"),
+        ),
+        Event(
+            event_id="b",
+            occurred_at=datetime(2026, 1, 1, 10, tzinfo=UTC),
+            value=Decimal("3"),
+        ),
+    ]
+
+    result = deduplicate_latest(events)
+
+    assert [(event.event_id, event.value) for event in result] == [
+        ("b", Decimal("3")),
+        ("a", Decimal("2")),
+    ]
+
+
+def test_daily_totals_uses_decimal_arithmetic() -> None:
+    events = [
+        Event(
+            event_id="a",
+            occurred_at=datetime(2026, 1, 1, tzinfo=UTC),
+            value=Decimal("0.1"),
+        ),
+        Event(
+            event_id="b",
+            occurred_at=datetime(2026, 1, 1, tzinfo=UTC),
+            value=Decimal("0.2"),
+        ),
+    ]
+
+    assert daily_totals(events)[0].total_value == Decimal("0.3")
+
+
+def test_pipeline_reads_validates_and_atomically_writes(tmp_path: Path) -> None:
+    input_path = tmp_path / "events.jsonl"
+    output_path = tmp_path / "output" / "totals.jsonl"
+    input_path.write_text(
+        "\n".join(
+            [
+                '{"event_id":"a","occurred_at":"2026-01-01T09:00:00Z","value":"1.5"}',
+                '{"event_id":"a","occurred_at":"2026-01-01T12:00:00Z","value":"2.5"}',
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_pipeline(
+        JsonLinesEventSource(input_path),
+        AtomicJsonLinesSink(output_path),
+    )
+
+    assert result.input_count == 2
+    assert result.duplicate_count == 1
+    assert result.output_count == 1
+    assert '"total_value":"2.5"' in output_path.read_text(encoding="utf-8")

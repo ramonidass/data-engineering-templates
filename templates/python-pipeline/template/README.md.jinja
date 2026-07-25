@@ -1,0 +1,46 @@
+# {{ product_name_display }} — Python pipeline
+
+A small typed batch pipeline for interview exercises, scheduled jobs, or the
+first version of a data product. It deliberately has no dataframe dependency:
+records are streamed from the source adapter, domain transforms stay pure, and
+the adapters can later be replaced by S3, Kafka, Postgres, or a warehouse.
+
+## Getting started
+
+```sh
+just dev-setup
+nix develop             # or direnv allow
+just test
+just run                # JSON Lines input -> atomic JSON Lines output
+```
+
+## Layout
+
+```text
+src/{{ package_name }}/
+├── models.py       # validated input/output contracts
+├── ports.py        # source/sink Protocols (dependency inversion)
+├── transforms.py   # pure deduplication + aggregation logic
+├── adapters.py     # JSON Lines source and atomic/idempotent file sink
+├── pipeline.py     # orchestration and observable run statistics
+├── config.py       # environment-based paths
+└── cli.py          # composition root
+tests/              # unit and adapter-level integration tests
+```
+
+The important interview shape is **functional core, imperative shell**: keep
+business rules in deterministic functions, keep I/O at the edge, inject ports,
+and test without cloud services. An Airflow DAG, Lambda handler, or container
+entrypoint should call `run_pipeline`; it should not contain transformation
+logic.
+
+## Production questions to answer before scaling it
+
+- What is the record key and event-time/source-sequence ordering?
+- Is a retry safe? The example file sink atomically replaces a complete output;
+  append/upsert sinks need their own idempotency key or transaction.
+- Where are checkpoints/high-water marks stored, and how is a backfill isolated?
+- Which invalid records fail the run versus enter a quarantine/DLQ?
+- What freshness, volume, rejection, and reconciliation metrics are emitted?
+- When data no longer fits one process, preserve these contracts and move the
+  transforms to Spark rather than mixing distributed I/O into domain logic.

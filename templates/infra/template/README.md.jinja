@@ -57,9 +57,15 @@ State lives in remote backends configured per environment under
 {{ 'bucket' if cloud != 'azure' else 'storage account' }} once per environment before
 the first `just init <env>`.
 
+Commit `.terraform.lock.hcl` after the first `init`. It pins provider selections
+and signed checksums; state files and saved plans remain ignored and must never be
+committed.
+
 ## Conventions
 
 - One state per environment; never share state across environments.
 - Every resource carries the `common_tags` / labels from `main.tf`.
 - No secrets in `.tfvars` — feed secrets through environment variables
   (`TF_VAR_...`) or your secret manager.
+- In CI, use short-lived OIDC workload identity, review the saved plan, pin actions
+  to commit SHAs, and apply that reviewed plan rather than planning again.

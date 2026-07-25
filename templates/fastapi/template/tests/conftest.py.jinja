@@ -1,12 +1,20 @@
-from collections.abc import Iterator
+from collections.abc import AsyncIterator
 
 import pytest
-from fastapi.testclient import TestClient
+from httpx2 import ASGITransport, AsyncClient
 
 from {{ package_name }}.app import create_app
 
 
 @pytest.fixture
-def client() -> Iterator[TestClient]:
-    with TestClient(create_app()) as test_client:
+async def client() -> AsyncIterator[AsyncClient]:
+    app = create_app()
+    transport = ASGITransport(app=app)
+    async with (
+        app.router.lifespan_context(app),
+        AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as test_client,
+    ):
         yield test_client

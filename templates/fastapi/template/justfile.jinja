@@ -31,6 +31,7 @@ pre-commit:
     uv run pre-commit run --all-files
 
 docker-build tag="local":
+    test -f uv.lock || (echo "uv.lock missing; run 'uv lock' first" && exit 1)
     docker build -t {{ project_name }}:{% raw %}{{ tag }}{% endraw %} .
 
 docker-run tag="local": (docker-build tag)
@@ -58,7 +59,8 @@ dev-setup:
     nix develop --command bash -c '
         set -e
         echo "🐍 Syncing python dependencies via uv..."
-        uv sync
+        uv lock
+        uv sync --locked
         just pre-commit-setup
         just create-env-file
         echo "✅ dev environment ready — try: just serve"

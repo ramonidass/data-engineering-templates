@@ -1,0 +1,25 @@
+from {{ package_name }}.models import ExampleRecord
+from {{ package_name }}.rules import Rule, evaluate_rules
+
+
+def test_evaluate_rules_returns_all_failures() -> None:
+    record = ExampleRecord(name="blocked")
+    rules = [
+        Rule[ExampleRecord](
+            code="name.blocked",
+            message="name is blocked",
+            is_valid=lambda candidate: candidate.name != "blocked",
+        ),
+        Rule[ExampleRecord](
+            code="name.short",
+            message="name is too short",
+            is_valid=lambda candidate: len(candidate.name) >= 10,
+        ),
+    ]
+
+    violations = evaluate_rules(record, rules)
+
+    assert [violation.code for violation in violations] == [
+        "name.blocked",
+        "name.short",
+    ]

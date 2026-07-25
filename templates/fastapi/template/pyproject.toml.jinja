@@ -5,9 +5,9 @@ description = "{{ product_name_display }} API"
 readme = "README.md"
 requires-python = ">={{ python_version }}"
 dependencies = [
-    "fastapi>=0.115",
+    "fastapi>=0.141,<1",
     "uvicorn[standard]>=0.34",
-    "pydantic>=2.10",
+    "pydantic>=2.13,<3",
     "pydantic-settings>=2.7",
 ]
 
@@ -15,8 +15,8 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
-    "httpx>=0.28",
-    "ruff>=0.11",
+    "httpx2>=2.12,<3",
+    "ruff>=0.16,<1",
     "mypy>=1.14",
     "pre-commit>=4.0",
 ]

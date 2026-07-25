@@ -15,6 +15,7 @@ just ci              # lint + type-check + test
 ```
 src/{{ package_name }}/
 ├── models.py     # pydantic domain models — the typed contract this package exports
+├── rules.py      # composable, named business-rule predicates
 {% if include_cli -%}
 ├── cli.py        # typer CLI ({{ project_name }} <command>)
 {% endif -%}
@@ -25,6 +26,12 @@ tests/
 `models.py` ships an `ExampleRecord` showing the house patterns: frozen value
 objects, field-level constraints, enums for closed vocabularies. Replace it
 with your real entities and keep the patterns.
+
+`rules.py` is a deliberately small rule engine for domains such as underwriting:
+rules are named predicates, evaluation returns all violations, and policy rules
+can be added without editing a central conditional. Use direct functions when
+the rules are simple; the abstraction earns its place only when extension and
+explainability matter.
 
 ## Commands
 

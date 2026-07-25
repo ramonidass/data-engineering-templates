@@ -2,7 +2,7 @@
   description = "Dev shell for working on the data engineering templates.";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
   };
 
   outputs = { self, nixpkgs, }:
@@ -23,6 +23,7 @@
           packages = (with pkgs; [
             just
             copier
+            python312
             git-secrets
             pre-commit
             shellcheck
@@ -30,7 +31,7 @@
           shellHook = ''
             mkdir -p "$PWD/.direnv/cache"
             export XDG_CACHE_HOME="$PWD/.direnv/cache"
-            echo "🧰 templates workbench — 'just new <template> <dest>' to scaffold"
+            echo "templates workbench — 'just new <template> <dest>' to scaffold"
           '';
         };
       });

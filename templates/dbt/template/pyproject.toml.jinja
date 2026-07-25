@@ -5,7 +5,7 @@ description = "{{ product_name_display }} dbt pipeline"
 readme = "README.md"
 requires-python = ">={{ python_version }}"
 dependencies = [
-    "dbt-core>=1.10",
+    "dbt-core>=1.10,<2",
 {% if adapter == 'bigquery' %}
     "dbt-bigquery>=1.10",
 {% elif adapter == 'snowflake' %}
@@ -21,7 +21,7 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pre-commit>=4.0",
-    "ruff>=0.11",
+    "ruff>=0.16,<1",
     "mypy>=1.14",
     "python-dotenv>=1.0",
     "sqlfluff>=3.3",

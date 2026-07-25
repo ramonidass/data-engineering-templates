@@ -7,6 +7,10 @@ help:
 run-daily-aggregation:
     uv run daily-aggregation
 
+[doc('Run the streaming job; the Spark Kafka connector must be supplied by the runtime.')]
+run-streaming-aggregation:
+    uv run streaming-aggregation
+
 lint:
     uv run ruff check .
     uv run ruff format --check .
@@ -38,6 +42,11 @@ create-env-file:
     cat > .env <<'EOF'
     {{ package_name | upper }}__INPUT_PATH=data/input
     {{ package_name | upper }}__OUTPUT_PATH=data/output
+    {{ package_name | upper }}__CHECKPOINT_PATH=data/checkpoints/daily-totals
+    {{ package_name | upper }}__KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+    {{ package_name | upper }}__KAFKA_TOPIC=events
+    {{ package_name | upper }}__STARTING_OFFSETS=latest
+    {{ package_name | upper }}__WATERMARK_DELAY=10 minutes
     EOF
     echo ".env created."
 
@@ -52,7 +61,8 @@ dev-setup:
     nix develop --command bash -c '
         set -e
         echo "🐍 Syncing python dependencies via uv..."
-        uv sync
+        uv lock
+        uv sync --locked
         just pre-commit-setup
         just create-env-file
         echo "✅ dev environment ready — try: just test"

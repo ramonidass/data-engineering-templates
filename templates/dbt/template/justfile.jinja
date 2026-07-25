@@ -70,7 +70,7 @@ fmt:
 deps:
     uv run dbt deps {% raw %}{{ dbt_flags }}{% endraw %}
 
-compile: deps
+compile:
     uv run dbt compile {% raw %}{{ dbt_flags }}{% endraw %}
 
 [doc('Run dbt unit tests only (no warehouse data needed beyond metadata).')]
@@ -78,16 +78,23 @@ unit-tests: build-empty
     uv run dbt test {% raw %}{{ dbt_flags }}{% endraw %} --select "test_type:unit"
 
 [doc('Build everything with --empty: validates SQL + contracts without moving data.')]
-build-empty: deps
-    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %} --exclude "test_type:unit" --empty
+build-empty:
+{% if adapter == 'duckdb' %}    uv run dbt seed {% raw %}{{ dbt_flags }}{% endraw %}
+    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %} --exclude "resource_type:seed test_type:unit" --empty
+{% else %}    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %} --exclude "test_type:unit" --empty
+{% endif %}
 
 [doc('Materialize all models.')]
-run: deps
-    uv run dbt run {% raw %}{{ dbt_flags }}{% endraw %}
+run:
+{% if adapter == 'duckdb' %}    uv run dbt seed {% raw %}{{ dbt_flags }}{% endraw %}
+{% endif %}    uv run dbt run {% raw %}{{ dbt_flags }}{% endraw %}
 
 [doc('Full build: models + data tests + unit tests.')]
-build: deps
-    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %}
+build:
+{% if adapter == 'duckdb' %}    uv run dbt seed {% raw %}{{ dbt_flags }}{% endraw %}
+    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %} --exclude "resource_type:seed"
+{% else %}    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %}
+{% endif %}
 
 test: unit-tests
 
@@ -104,9 +111,9 @@ dev-setup:
     nix develop --command bash -c '
         set -e
         echo "🐍 Syncing python dependencies via uv..."
-        uv sync
+        uv lock
+        uv sync --locked
         just pre-commit-setup
         just create-env-file
-        uv run dbt deps
         echo "✅ dev environment ready"
     '

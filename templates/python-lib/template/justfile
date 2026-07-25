@@ -40,7 +40,8 @@ dev-setup:
     nix develop --command bash -c '
         set -e
         echo "🐍 Syncing python dependencies via uv..."
-        uv sync
+        uv lock
+        uv sync --locked
         just pre-commit-setup
         echo "✅ dev environment ready — try: just ci"
     '

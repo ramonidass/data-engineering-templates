@@ -1,9 +1,15 @@
 from datetime import datetime
 
+import pytest
 from pyspark.sql import SparkSession
 
 from {{ package_name }}.schemas import EVENT_SCHEMA
-from {{ package_name }}.transforms import daily_totals, deduplicate_events
+from {{ package_name }}.streaming import parse_kafka_events
+from {{ package_name }}.transforms import (
+    daily_totals,
+    deduplicate_events,
+    require_columns,
+)
 
 
 def test_deduplicate_events_keeps_latest(spark: SparkSession) -> None:
@@ -33,7 +39,31 @@ def test_daily_totals_aggregates_per_day(spark: SparkSession) -> None:
 
     rows = daily_totals(df).collect()
 
-    assert [(str(r["event_date"]), r["event_count"], r["total_value"]) for r in rows] == [
+    actual = [
+        (str(row["event_date"]), row["event_count"], row["total_value"]) for row in rows
+    ]
+    assert actual == [
         ("2026-01-01", 2, 3.0),
         ("2026-01-02", 1, 4.0),
     ]
+
+
+def test_require_columns_reports_missing_contract_fields(spark: SparkSession) -> None:
+    df = spark.createDataFrame([("a",)], ["event_id"])
+
+    with pytest.raises(ValueError, match="occurred_at, value"):
+        require_columns(df, {"event_id", "occurred_at", "value"})
+
+
+def test_parse_kafka_events_rejects_malformed_json(spark: SparkSession) -> None:
+    kafka_rows = spark.createDataFrame(
+        [
+            ('{"event_id":"a","occurred_at":"2026-01-01T09:00:00Z","value":2.5}',),
+            ("not-json",),
+        ],
+        ["value"],
+    )
+
+    rows = parse_kafka_events(kafka_rows).collect()
+
+    assert [(row["event_id"], row["value"]) for row in rows] == [("a", 2.5)]

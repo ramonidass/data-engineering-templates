@@ -5,7 +5,7 @@ description = "{{ product_name_display }}"
 readme = "README.md"
 requires-python = ">={{ python_version }}"
 dependencies = [
-    "pydantic>=2.10",
+    "pydantic>=2.13,<3",
 {% if include_cli %}
     "typer>=0.15",
 {% endif %}
@@ -15,7 +15,7 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
-    "ruff>=0.11",
+    "ruff>=0.16,<1",
     "mypy>=1.14",
     "pre-commit>=4.0",
 ]

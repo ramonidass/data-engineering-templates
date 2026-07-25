@@ -5,8 +5,8 @@ description = "{{ product_name_display }} PySpark jobs"
 readme = "README.md"
 requires-python = ">={{ python_version }}"
 dependencies = [
-    "pyspark>=3.5",
-    "pydantic>=2.10",
+    "pyspark>={{ spark_version }},<{{ '3.6' if spark_version == '3.5' else '4.3' }}",
+    "pydantic>=2.13,<3",
     "pydantic-settings>=2.7",
 ]
 
@@ -14,13 +14,14 @@ dependencies = [
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
-    "ruff>=0.11",
+    "ruff>=0.16,<1",
     "mypy>=1.14",
     "pre-commit>=4.0",
 ]
 
 [project.scripts]
 daily-aggregation = "{{ package_name }}.jobs.daily_aggregation:main"
+streaming-aggregation = "{{ package_name }}.jobs.streaming_aggregation:main"
 
 [build-system]
 requires = ["hatchling"]

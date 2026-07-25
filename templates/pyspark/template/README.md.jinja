@@ -1,4 +1,4 @@
-# {{ product_name_display }} — PySpark jobs
+# {{ product_name_display }} — PySpark {{ spark_version }} jobs
 
 Spark batch jobs for {{ product_name_display }}.
 
@@ -16,7 +16,8 @@ just test            # runs the transform tests on a local[2] session
 src/{{ package_name }}/
 ├── config.py       # pydantic-settings; paths & names via {{ package_name | upper }}__* env vars
 ├── schemas.py      # explicit Spark schemas (+ pydantic mirrors) for every dataset
-├── transforms.py   # pure DataFrame -> DataFrame functions — all the logic
+├── transforms.py   # pure batch DataFrame -> DataFrame functions
+├── streaming.py    # Kafka parsing, event-time windows, watermark/dedup logic
 └── jobs/           # entrypoints that own I/O and compose transforms
 tests/              # session-scoped local SparkSession fixture in conftest.py
 ```
@@ -31,10 +32,30 @@ with `spark.createDataFrame`, and jobs become trivial glue that rarely breaks.
 Schema inference is banned for production reads; every dataset has an explicit
 schema in `schemas.py`.
 
+`deduplicate_events` intentionally uses `row_number` over a partition window.
+`orderBy(...).dropDuplicates(...)` cannot guarantee which row survives the
+deduplication shuffle. Replace the example value tie-breaker with the source's
+sequence number or ingestion timestamp when one exists.
+
+The streaming example shows the concepts interviewers usually probe: Kafka
+offsets, event time, watermarks, bounded deduplication state, durable
+checkpoints, and append-safe file output. The cluster or `spark-submit` command
+must supply `spark-sql-kafka-0-10` matching its exact Spark and Scala versions;
+the Python package alone cannot safely choose that deployment artifact.
+
 ## Commands
 
 ```sh
 just lint / fmt / type-check / test
 just ci                       # what CI runs
 just run-daily-aggregation    # run the example job locally
+just run-streaming-aggregation # requires a Kafka connector + broker
 ```
+
+## Performance checklist
+
+- Filter/project before wide operations and broadcast only genuinely small inputs.
+- Understand shuffle boundaries (`join`, `groupBy`, `distinct`, repartition).
+- Prefer built-in expressions over Python UDFs; inspect `df.explain("formatted")`.
+- Partition output by common, low/medium-cardinality predicates—not IDs.
+- Treat skew explicitly (AQE, salting, pre-aggregation), and avoid tiny files.

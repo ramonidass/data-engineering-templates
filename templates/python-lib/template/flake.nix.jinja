@@ -2,7 +2,7 @@
   description = "{{ product_name_display }} library development environment";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
   };
 
   outputs = { self, nixpkgs, }:
@@ -49,7 +49,7 @@
               set +a
             fi
 
-            echo "📦 {{ product_name_display }} lib env active — run 'just' for commands."
+            echo "{{ product_name_display }} lib env active — run 'just' for commands."
           '';
           NIX_SHELL = "1";
         };
