@@ -1,0 +1,29 @@
+import typer
+
+from {{ package_name }} import __version__
+
+app = typer.Typer(
+    help="{{ product_name_display }} command line interface."
+    no_args_is_help=True,
+    add_completition=True,
+)
+
+
+@app.callback()
+def main() -> None:
+    """{{ product_name_display }}.
+    # A positional ARGUMENT (required): `main.py hello Ada`
+    payload: list = typer.Argument(..., help="Payload to process"),
+    # An OPTION with a default: `main.py hello Ada --count 3`
+    count: int = typer.Option(1, "--count", "-c", help="How many times to greet."),
+    """
+
+
+@app.command()
+def version() -> None:
+    """Print the package version."""
+    typer.echo(__version__)
+
+
+if __name__ == "__main__":
+    app()

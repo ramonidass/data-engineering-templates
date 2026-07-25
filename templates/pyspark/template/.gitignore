@@ -1,0 +1,17 @@
+.direnv/
+.venv/
+.env
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+htmlcov/
+.coverage
+
+# Spark
+spark-warehouse/
+metastore_db/
+derby.log
+data/

@@ -1,0 +1,11 @@
+from fastapi import APIRouter
+
+from {{ package_name }} import __version__
+from {{ package_name }}.schemas import HealthStatus
+
+router = APIRouter(tags=["health"])
+
+
+@router.get("/health")
+def health() -> HealthStatus:
+    return HealthStatus(status="ok", version=__version__)

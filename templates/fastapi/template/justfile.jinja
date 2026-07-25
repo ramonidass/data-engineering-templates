@@ -1,0 +1,65 @@
+set dotenv-load
+
+help:
+    @just --list
+
+[doc('Run the API locally with hot reload.')]
+serve:
+    uv run uvicorn {{ package_name }}.app:app --reload --port 8000
+
+lint:
+    uv run ruff check .
+    uv run ruff format --check .
+
+fmt:
+    uv run ruff check --fix .
+    uv run ruff format .
+
+type-check:
+    uv run mypy src tests
+
+test:
+    uv run pytest
+
+ci: lint type-check test
+
+pre-commit-setup:
+    uv run pre-commit install
+    uv run pre-commit install --hook-type commit-msg
+
+pre-commit:
+    uv run pre-commit run --all-files
+
+docker-build tag="local":
+    docker build -t {{ project_name }}:{% raw %}{{ tag }}{% endraw %} .
+
+docker-run tag="local": (docker-build tag)
+    docker run --rm -p 8000:8000 --env-file .env {{ project_name }}:{% raw %}{{ tag }}{% endraw %}
+
+create-env-file:
+    #!/usr/bin/env bash
+    if [ -f .env ]; then
+        echo ".env already exists; delete it first to regenerate"; exit 0
+    fi
+    cat > .env <<'EOF'
+    {{ package_name | upper }}__ENVIRONMENT=local
+    {{ package_name | upper }}__LOG_LEVEL=INFO
+    EOF
+    echo ".env created."
+
+dev-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v nix &> /dev/null; then
+        echo "❌ Nix is not installed. Install it first:"
+        echo "   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+        exit 1
+    fi
+    nix develop --command bash -c '
+        set -e
+        echo "🐍 Syncing python dependencies via uv..."
+        uv sync
+        just pre-commit-setup
+        just create-env-file
+        echo "✅ dev environment ready — try: just serve"
+    '

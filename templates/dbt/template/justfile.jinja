@@ -1,0 +1,112 @@
+set dotenv-load
+
+dbt_target := env('DBT_TARGET', 'local')
+dbt_flags := "--target " + dbt_target + " --profiles-dir ."
+
+help:
+    @just --list
+{% if adapter == 'bigquery' %}
+
+authenticate:
+    gcloud auth application-default login \
+        --scopes=https://www.googleapis.com/auth/bigquery,https://www.googleapis.com/auth/drive.readonly
+{% endif %}
+
+pre-commit-setup:
+    uv run pre-commit install
+    uv run pre-commit install --hook-type commit-msg
+
+pre-commit:
+    uv run pre-commit run --all-files
+
+[doc('Create a documented `.env` skeleton. Populate it with real values after.')]
+create-env-file:
+    #!/usr/bin/env bash
+    if [ -f .env ]; then
+        echo ".env already exists; delete it first to regenerate"; exit 0
+    fi
+{% if adapter == 'bigquery' %}
+    cat > .env <<'EOF'
+    DBT__GCP_PROJECT=REPLACE-with-gcp-project
+    DBT__TARGET_DATASET={{ project_name_snake }}
+    DBT__LOCATION=EU
+    DBT__IMPERSONATE_SA=
+    EOF
+{% elif adapter == 'snowflake' %}
+    cat > .env <<'EOF'
+    DBT__SNOWFLAKE_ACCOUNT=REPLACE
+    DBT__SNOWFLAKE_USER=REPLACE
+    DBT__SNOWFLAKE_ROLE=REPLACE
+    DBT__SNOWFLAKE_WAREHOUSE=REPLACE
+    DBT__SNOWFLAKE_DATABASE=REPLACE
+    DBT__TARGET_SCHEMA={{ project_name_snake }}
+    EOF
+{% elif adapter == 'databricks' %}
+    cat > .env <<'EOF'
+    DBT__DATABRICKS_HOST=REPLACE
+    DBT__DATABRICKS_HTTP_PATH=REPLACE
+    DBT__DATABRICKS_TOKEN=REPLACE
+    DBT__DATABRICKS_CATALOG=REPLACE
+    DBT__TARGET_SCHEMA={{ project_name_snake }}
+    EOF
+{% elif adapter == 'duckdb' %}
+    cat > .env <<'EOF'
+    DBT__DUCKDB_PATH=local.duckdb
+    EOF
+{% endif %}
+    echo ".env created — fill in the REPLACE values."
+
+lint:
+    uv run ruff check .
+    uv run ruff format --check .
+    uv run sqlfluff lint .
+    uv run yamllint .
+
+fmt:
+    uv run ruff check --fix .
+    uv run ruff format .
+    uv run sqlfluff fix .
+
+deps:
+    uv run dbt deps {% raw %}{{ dbt_flags }}{% endraw %}
+
+compile: deps
+    uv run dbt compile {% raw %}{{ dbt_flags }}{% endraw %}
+
+[doc('Run dbt unit tests only (no warehouse data needed beyond metadata).')]
+unit-tests: build-empty
+    uv run dbt test {% raw %}{{ dbt_flags }}{% endraw %} --select "test_type:unit"
+
+[doc('Build everything with --empty: validates SQL + contracts without moving data.')]
+build-empty: deps
+    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %} --exclude "test_type:unit" --empty
+
+[doc('Materialize all models.')]
+run: deps
+    uv run dbt run {% raw %}{{ dbt_flags }}{% endraw %}
+
+[doc('Full build: models + data tests + unit tests.')]
+build: deps
+    uv run dbt build {% raw %}{{ dbt_flags }}{% endraw %}
+
+test: unit-tests
+
+ci: lint test
+
+dev-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v nix &> /dev/null; then
+        echo "❌ Nix is not installed. Install it first:"
+        echo "   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+        exit 1
+    fi
+    nix develop --command bash -c '
+        set -e
+        echo "🐍 Syncing python dependencies via uv..."
+        uv sync
+        just pre-commit-setup
+        just create-env-file
+        uv run dbt deps
+        echo "✅ dev environment ready"
+    '

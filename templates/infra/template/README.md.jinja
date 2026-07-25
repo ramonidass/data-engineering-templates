@@ -1,0 +1,65 @@
+# {{ product_name_display }} — Infrastructure
+
+Terraform infrastructure for {{ product_name_display }}, targeting **{{ cloud | upper }}**
+and managed with **{{ iac_tool }}**.
+
+## Getting started
+
+```sh
+just dev-setup       # one-time bootstrap (nix shell + pre-commit hooks)
+nix develop          # or `direnv allow` for automatic activation
+```
+
+Authenticate against {{ cloud | upper }}:
+
+{% if cloud == 'gcp' -%}
+```sh
+gcloud auth login
+gcloud auth application-default login
+```
+{%- elif cloud == 'aws' -%}
+```sh
+aws sso login    # or configure credentials for your profile
+```
+{%- elif cloud == 'azure' -%}
+```sh
+az login
+```
+{%- endif %}
+
+## Layout
+
+```
+terraform/
+├── main.tf            # root module — keep thin, split into modules/ as it grows
+├── variables.tf
+├── outputs.tf
+├── versions.tf        # providers + remote state backend
+└── environments/      # per-environment backend + variable files
+    ├── dev/
+    ├── test/
+    └── prod/
+```
+
+## Workflow
+
+```sh
+just plan dev        # init + plan against dev
+just apply dev       # apply the saved plan
+just lint            # fmt-check, tflint, validate
+just scan            # trivy security scan
+just docs            # regenerate terraform-docs
+just ci              # what CI runs
+```
+
+State lives in remote backends configured per environment under
+`terraform/environments/<env>/backend.hcl`. Create the state
+{{ 'bucket' if cloud != 'azure' else 'storage account' }} once per environment before
+the first `just init <env>`.
+
+## Conventions
+
+- One state per environment; never share state across environments.
+- Every resource carries the `common_tags` / labels from `main.tf`.
+- No secrets in `.tfvars` — feed secrets through environment variables
+  (`TF_VAR_...`) or your secret manager.

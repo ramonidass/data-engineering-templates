@@ -1,0 +1,59 @@
+set dotenv-load
+
+help:
+    @just --list
+
+[doc('Run the example job locally against paths from .env.')]
+run-daily-aggregation:
+    uv run daily-aggregation
+
+lint:
+    uv run ruff check .
+    uv run ruff format --check .
+
+fmt:
+    uv run ruff check --fix .
+    uv run ruff format .
+
+type-check:
+    uv run mypy src tests
+
+test:
+    uv run pytest
+
+ci: lint type-check test
+
+pre-commit-setup:
+    uv run pre-commit install
+    uv run pre-commit install --hook-type commit-msg
+
+pre-commit:
+    uv run pre-commit run --all-files
+
+create-env-file:
+    #!/usr/bin/env bash
+    if [ -f .env ]; then
+        echo ".env already exists; delete it first to regenerate"; exit 0
+    fi
+    cat > .env <<'EOF'
+    {{ package_name | upper }}__INPUT_PATH=data/input
+    {{ package_name | upper }}__OUTPUT_PATH=data/output
+    EOF
+    echo ".env created."
+
+dev-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v nix &> /dev/null; then
+        echo "❌ Nix is not installed. Install it first:"
+        echo "   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+        exit 1
+    fi
+    nix develop --command bash -c '
+        set -e
+        echo "🐍 Syncing python dependencies via uv..."
+        uv sync
+        just pre-commit-setup
+        just create-env-file
+        echo "✅ dev environment ready — try: just test"
+    '

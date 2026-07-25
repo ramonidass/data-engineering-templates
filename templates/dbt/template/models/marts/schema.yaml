@@ -1,0 +1,30 @@
+version: 2
+
+models:
+  - name: fct_daily_events
+    description: Daily event counts. One row per calendar date with at least one event.
+    columns:
+      - name: event_date
+        description: Calendar date (derived from occurred_at).
+        data_tests:
+          - unique
+          - not_null
+      - name: event_count
+        description: Number of events on that date.
+        data_tests:
+          - not_null
+
+unit_tests:
+  - name: test_fct_daily_events_aggregates_per_day
+    description: Two events on the same day collapse into one row with count 2.
+    model: fct_daily_events
+    given:
+      - input: ref('stg_example_events')
+        rows:
+          - {event_id: 1, occurred_at: "2026-01-01 09:00:00"}
+          - {event_id: 2, occurred_at: "2026-01-01 17:30:00"}
+          - {event_id: 3, occurred_at: "2026-01-02 08:00:00"}
+    expect:
+      rows:
+        - {event_date: "2026-01-01", event_count: 2}
+        - {event_date: "2026-01-02", event_count: 1}

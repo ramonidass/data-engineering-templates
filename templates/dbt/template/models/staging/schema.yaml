@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: stg_example_events
+    description: Cleaned, renamed projection of raw.example_events. One row per event.
+    columns:
+      - name: event_id
+        description: Primary key.
+        data_tests:
+          - unique
+          - not_null
+      - name: occurred_at
+        description: Event timestamp (UTC).
+        data_tests:
+          - not_null

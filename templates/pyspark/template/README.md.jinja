@@ -1,0 +1,40 @@
+# {{ product_name_display }} — PySpark jobs
+
+Spark batch jobs for {{ product_name_display }}.
+
+## Getting started
+
+```sh
+just dev-setup       # nix shell (python + JDK 17) + uv sync + pre-commit
+nix develop          # or `direnv allow` for automatic activation
+just test            # runs the transform tests on a local[2] session
+```
+
+## Layout
+
+```
+src/{{ package_name }}/
+├── config.py       # pydantic-settings; paths & names via {{ package_name | upper }}__* env vars
+├── schemas.py      # explicit Spark schemas (+ pydantic mirrors) for every dataset
+├── transforms.py   # pure DataFrame -> DataFrame functions — all the logic
+└── jobs/           # entrypoints that own I/O and compose transforms
+tests/              # session-scoped local SparkSession fixture in conftest.py
+```
+
+## The architecture rule that matters
+
+**All logic in `transforms.py`, all I/O in `jobs/`.** Transforms take
+DataFrames and return DataFrames — no reads, no writes, no SparkSession
+argument. That makes every piece of business logic testable in milliseconds
+with `spark.createDataFrame`, and jobs become trivial glue that rarely breaks.
+
+Schema inference is banned for production reads; every dataset has an explicit
+schema in `schemas.py`.
+
+## Commands
+
+```sh
+just lint / fmt / type-check / test
+just ci                       # what CI runs
+just run-daily-aggregation    # run the example job locally
+```

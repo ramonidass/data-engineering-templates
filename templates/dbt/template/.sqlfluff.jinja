@@ -1,0 +1,27 @@
+[sqlfluff]
+dialect = {{ sqlfluff_dialect }}
+templater = dbt
+max_line_length = {{ sql_line_length }}
+exclude_rules = ST06
+
+[sqlfluff:templater:dbt]
+project_dir = .
+profiles_dir = .
+target = local
+
+[sqlfluff:indentation]
+indented_joins = false
+indented_using_on = true
+template_blocks_indent = false
+
+[sqlfluff:rules:capitalisation.keywords]
+capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.identifiers]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:capitalisation.functions]
+extended_capitalisation_policy = lower
+
+[sqlfluff:rules:references.keywords]
+ignore_words = None

@@ -1,0 +1,14 @@
+{% if cloud == 'gcp' -%}
+bucket = "{{ state_bucket_pattern | replace('{env}', 'dev') }}"
+prefix = "terraform/state"
+{%- elif cloud == 'aws' -%}
+bucket       = "{{ state_bucket_pattern | replace('{env}', 'dev') }}"
+key          = "{{ project_name }}/dev/terraform.tfstate"
+region       = "{{ region }}"
+use_lockfile = true
+{%- elif cloud == 'azure' -%}
+resource_group_name  = "rg-{{ project_name }}-dev"
+storage_account_name = "{{ state_bucket_pattern | replace('{env}', 'dev') }}"
+container_name       = "tfstate"
+key                  = "dev.terraform.tfstate"
+{%- endif %}
