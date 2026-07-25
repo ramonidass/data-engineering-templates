@@ -16,14 +16,16 @@ just serve           # http://localhost:8000/docs
 src/{{ package_name }}/
 ├── app.py        # app factory + lifespan (open/close shared resources here)
 ├── config.py     # pydantic-settings; all config via {{ package_name | upper }}__* env vars
+├── repositories.py # storage boundary; in-memory adapter is replaceable in tests
 ├── schemas.py    # pydantic request/response models — validate at the edge
 └── routers/      # thin route handlers, one module per resource
-tests/            # httpx TestClient tests; run in-process, no server needed
+tests/            # HTTPX2 async ASGI tests; run in-process, no server needed
 ```
 
-The `items` router is a working example backed by an in-memory dict. Swap the
-store for your real backend and keep the shape: routers thin, validation in
-schemas, storage behind a small interface.
+The `items` router is a working example backed by an app-scoped in-memory
+repository. Swap the adapter for your real backend and keep the shape: routers
+thin, validation in schemas, storage behind a small interface. App-scoped state
+also keeps tests isolated.
 
 ## Commands
 
@@ -34,6 +36,9 @@ just test          # pytest with coverage
 just ci            # all of the above — same as CI
 just docker-run    # build and run the production image locally
 ```
+
+`just dev-setup` creates `uv.lock`; commit it. Docker deliberately fails without
+the lock instead of resolving different dependencies during an image build.
 
 ## Configuration
 

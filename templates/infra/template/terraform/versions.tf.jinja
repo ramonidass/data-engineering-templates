@@ -5,17 +5,17 @@ terraform {
 {% if cloud == 'gcp' %}
     google = {
       source  = "hashicorp/google"
-      version = "~> 6.0"
+      version = "~> 7.0"
     }
 {% elif cloud == 'aws' %}
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 6.0"
     }
 {% elif cloud == 'azure' %}
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.0"
+      version = "~> 5.0"
     }
 {% endif %}
   }

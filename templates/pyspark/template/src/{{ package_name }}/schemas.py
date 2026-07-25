@@ -8,13 +8,13 @@ non-Spark boundary (APIs, config, fixtures).
 from datetime import datetime
 
 from pydantic import BaseModel
-from pyspark.sql import types as T
+from pyspark.sql import types as st
 
-EVENT_SCHEMA = T.StructType(
+EVENT_SCHEMA = st.StructType(
     [
-        T.StructField("event_id", T.StringType(), nullable=False),
-        T.StructField("occurred_at", T.TimestampType(), nullable=False),
-        T.StructField("value", T.DoubleType(), nullable=True),
+        st.StructField("event_id", st.StringType(), nullable=False),
+        st.StructField("occurred_at", st.TimestampType(), nullable=False),
+        st.StructField("value", st.DoubleType(), nullable=True),
     ]
 )
 

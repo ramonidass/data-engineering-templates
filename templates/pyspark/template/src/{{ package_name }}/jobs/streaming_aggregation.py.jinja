@@ -1,0 +1,55 @@
+"""Kafka -> event-time aggregate -> Parquet Structured Streaming job.
+
+The deployment must provide Spark's Kafka connector matching its Spark/Scala
+runtime. Checkpoints live outside the output path and must be durable in
+production (for example, S3 on AWS).
+"""
+
+import logging
+
+from pyspark.sql import SparkSession
+
+from {{ package_name }}.config import JobSettings
+from {{ package_name }}.streaming import parse_kafka_events, streaming_daily_totals
+
+logger = logging.getLogger(__name__)
+
+
+def run(spark: SparkSession, settings: JobSettings) -> None:
+    kafka_rows = (
+        spark.readStream.format("kafka")
+        .option("kafka.bootstrap.servers", settings.kafka_bootstrap_servers)
+        .option("subscribe", settings.kafka_topic)
+        .option("startingOffsets", settings.starting_offsets)
+        .option("failOnDataLoss", "true")
+        .load()
+    )
+    totals = streaming_daily_totals(
+        parse_kafka_events(kafka_rows),
+        watermark_delay=settings.watermark_delay,
+    )
+    query = (
+        totals.writeStream.format("parquet")
+        .option("path", settings.output_path)
+        .option("checkpointLocation", settings.checkpoint_path)
+        .outputMode("append")
+        .partitionBy("event_date")
+        .queryName(f"{settings.app_name}-daily-totals")
+        .start()
+    )
+    logger.info("started query %s", query.id)
+    query.awaitTermination()
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    settings = JobSettings()
+    spark = SparkSession.builder.appName(settings.app_name).getOrCreate()
+    try:
+        run(spark, settings)
+    finally:
+        spark.stop()
+
+
+if __name__ == "__main__":
+    main()

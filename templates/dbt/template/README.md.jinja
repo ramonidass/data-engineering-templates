@@ -1,6 +1,8 @@
 # {{ product_name_display }} — dbt pipeline
 
 dbt pipeline for {{ product_name_display }}, running on **{{ adapter }}**.
+Add packages only when a model uses them; the starter is dependency-free so
+local parsing and unit tests do not require a package-registry download.
 
 ## Getting started
 
@@ -29,6 +31,7 @@ just run             # materialize models
 models/
 ├── staging/     # 1:1 with sources — rename, cast, light cleaning. Views.
 └── marts/       # business-facing facts and dimensions. Tables.
+seeds/            # DuckDB demo input; replace it with the real raw source
 ```
 
 Conventions:
@@ -41,6 +44,8 @@ Conventions:
   needs production data.
 - Warehouse connection comes from environment variables only
   (see `profiles.yml`); nothing secret lives in the repo.
+- The DuckDB variant is self-contained: its bundled seed backs the example
+  source, so `just ci` runs without credentials or external tables.
 
 ## Commands
 

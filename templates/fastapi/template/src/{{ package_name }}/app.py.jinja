@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from {{ package_name }}.config import get_settings
+from {{ package_name }}.repositories import ItemRepository
 from {{ package_name }}.routers import health, items
 
 
@@ -19,13 +20,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-def create_app() -> FastAPI:
+def create_app(item_repository: ItemRepository | None = None) -> FastAPI:
     settings = get_settings()
     app = FastAPI(
         title=settings.app_name,
         version="0.1.0",
         lifespan=lifespan,
     )
+    # App-scoped dependencies are easy to replace in tests and do not leak
+    # mutable module-level state between application instances.
+    app.state.item_repository = item_repository or ItemRepository()
     app.include_router(health.router)
     app.include_router(items.router)
     return app

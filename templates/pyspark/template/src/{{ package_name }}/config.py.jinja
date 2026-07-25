@@ -17,6 +17,11 @@ class JobSettings(BaseSettings):
 
     input_path: str = "data/input"
     output_path: str = "data/output"
+    checkpoint_path: str = "data/checkpoints/daily-totals"
     app_name: str = "{{ project_name }}"
+    kafka_bootstrap_servers: str = "localhost:9092"
+    kafka_topic: str = "events"
+    starting_offsets: str = "latest"
+    watermark_delay: str = "10 minutes"
     # Add per-job settings here. Paths, table names and credentials always come
     # from the environment so the same artifact runs in every environment.
