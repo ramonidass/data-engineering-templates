@@ -1,0 +1,140 @@
+# Root dispatcher. Copier only ever reads the copier.yml at the repository root,
+# so every template's questions live here and `_subdirectory` selects which
+# template body gets rendered. This is what lets generated projects record the
+# GitHub URL as their `_src_path` and run `copier update`.
+
+_subdirectory: "templates/{{ template_kind }}/template"
+
+template_kind:
+  type: str
+  help: Which template do you want?
+  choices:
+    Terraform / OpenTofu infrastructure: infra
+    dbt pipeline: dbt
+    FastAPI service: fastapi
+    PySpark jobs: pyspark
+    Python library / CLI: python-lib
+
+project_name:
+  type: str
+  help: What is the project name (kebab-case)?
+  placeholder: my-project
+  validator: >-
+    {% if not (project_name | regex_search('^[a-z][a-z0-9\-]*$')) %}
+    project_name must start with a letter, followed by letters, digits or dashes,
+    all lowercase.
+    {% endif %}
+
+product_name_display:
+  type: str
+  help: What is the display name for your product? (e.g., "My Product")
+  default: "{{ project_name | title | replace('-', ' ') }}"
+
+# Derived names. Hidden (`when: false`), so they are computed but never asked
+# and never written to .copier-answers.yml.
+package_name:
+  type: str
+  default: "{{ project_name | replace('-', '_') }}"
+  when: false
+
+project_name_snake:
+  type: str
+  default: "{{ project_name | replace('-', '_') }}"
+  when: false
+
+product_name_flatcase:
+  type: str
+  default: "{{ project_name | replace('-','') }}"
+  when: false
+
+# ---------------------------------------------------------------- infra only
+cloud:
+  type: str
+  help: Which cloud does this infrastructure target?
+  choices:
+    - gcp
+    - aws
+    - azure
+  default: gcp
+  when: "{{ template_kind == 'infra' }}"
+
+iac_tool:
+  type: str
+  help: Terraform (requires unfree nixpkgs) or OpenTofu (fully open source)?
+  choices:
+    - opentofu
+    - terraform
+  default: opentofu
+  when: "{{ template_kind == 'infra' }}"
+
+tf_binary:
+  type: str
+  default: "{{ 'tofu' if iac_tool == 'opentofu' else 'terraform' }}"
+  when: false
+
+state_bucket_pattern:
+  type: str
+  help: Remote-state bucket / storage-account naming pattern ({env} is substituted)
+  default: "{{ '{env}-tfstate-' ~ product_name_flatcase if cloud != 'azure' else 'st' ~ product_name_flatcase ~ '{env}tf' }}"
+  when: "{{ template_kind == 'infra' }}"
+
+region:
+  type: str
+  help: Default region for resources
+  default: "{{ 'europe-west2' if cloud == 'gcp' else ('eu-west-1' if cloud == 'aws' else 'westeurope') }}"
+  when: "{{ template_kind == 'infra' }}"
+
+# ------------------------------------------------------------------ dbt only
+adapter:
+  type: str
+  help: Which warehouse does this pipeline run against?
+  choices:
+    - bigquery
+    - snowflake
+    - databricks
+    - duckdb
+  default: bigquery
+  when: "{{ template_kind == 'dbt' }}"
+
+sqlfluff_dialect:
+  type: str
+  default: "{{ adapter }}"
+  when: false
+
+sql_line_length:
+  type: int
+  help: The line length for sql scripts.
+  default: 100
+  when: "{{ template_kind == 'dbt' }}"
+  validator: >-
+    {% if sql_line_length < 80 or sql_line_length > 120 %}
+    sql line length should be between 80 and 120.
+    {% endif %}
+
+# ----------------------------------------------------------- python-lib only
+include_cli:
+  type: bool
+  help: Include a typer CLI entrypoint?
+  default: false
+  when: "{{ template_kind == 'python-lib' }}"
+
+# ------------------------------------------------- every python-based template
+python_version:
+  type: str
+  help: What python version is this project going to use?
+  default: "3.12"
+  when: "{{ template_kind != 'infra' }}"
+  validator: >-
+    {% if not (python_version | regex_search('^3\.[0-9][0-9]?$')) %}
+    A valid python version looks like 3.12
+    {% endif %}
+
+python_line_length:
+  type: int
+  help: Maximum python line length (used by ruff)
+  default: 88
+  when: "{{ template_kind != 'infra' }}"
+  validator: >-
+    {% if python_line_length < 80 or python_line_length > 200 %}
+    The line length should be between 80 and 200
+    {% endif %}
