@@ -1,0 +1,35 @@
+# {{ product_name_display }}
+
+Typed python library for {{ product_name_display }}.
+
+## Getting started
+
+```sh
+just dev-setup       # nix shell + uv sync + pre-commit hooks
+nix develop          # or `direnv allow` for automatic activation
+just ci              # lint + type-check + test
+```
+
+## Layout
+
+```
+src/{{ package_name }}/
+├── models.py     # pydantic domain models — the typed contract this package exports
+{% if include_cli -%}
+├── cli.py        # typer CLI ({{ project_name }} <command>)
+{% endif -%}
+└── py.typed      # marks the package as typed for downstream mypy
+tests/
+```
+
+`models.py` ships an `ExampleRecord` showing the house patterns: frozen value
+objects, field-level constraints, enums for closed vocabularies. Replace it
+with your real entities and keep the patterns.
+
+## Commands
+
+```sh
+just lint / fmt / type-check / test
+just ci        # what CI runs
+just build     # build sdist + wheel with uv
+```

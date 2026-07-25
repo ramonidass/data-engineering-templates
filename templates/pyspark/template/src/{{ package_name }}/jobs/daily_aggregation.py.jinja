@@ -1,0 +1,38 @@
+"""Example job: read events, deduplicate, aggregate per day, write parquet.
+
+Jobs own all I/O and orchestration; the logic they compose lives in
+transforms.py where it is unit-testable without any storage.
+"""
+
+import logging
+
+from pyspark.sql import SparkSession
+
+from {{ package_name }}.config import JobSettings
+from {{ package_name }}.schemas import EVENT_SCHEMA
+from {{ package_name }}.transforms import daily_totals, deduplicate_events
+
+logger = logging.getLogger(__name__)
+
+
+def run(spark: SparkSession, settings: JobSettings) -> None:
+    events = spark.read.schema(EVENT_SCHEMA).parquet(settings.input_path)
+
+    result = daily_totals(deduplicate_events(events))
+
+    result.write.mode("overwrite").parquet(settings.output_path)
+    logger.info("wrote daily totals to %s", settings.output_path)
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO)
+    settings = JobSettings()
+    spark = SparkSession.builder.appName(settings.app_name).getOrCreate()
+    try:
+        run(spark, settings)
+    finally:
+        spark.stop()
+
+
+if __name__ == "__main__":
+    main()

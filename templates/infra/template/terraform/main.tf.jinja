@@ -1,0 +1,12 @@
+locals {
+  product = "{{ project_name }}"
+
+  common_tags = {
+    product     = local.product
+    environment = var.environment
+    managed_by  = "terraform"
+  }
+}
+
+# Add your resources here. Keep this root module thin: group related resources
+# into child modules under terraform/modules/<name> as the project grows.

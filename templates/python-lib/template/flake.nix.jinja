@@ -1,0 +1,58 @@
+{
+  description = "{{ product_name_display }} library development environment";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+  };
+
+  outputs = { self, nixpkgs, }:
+    let
+      allSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+
+      forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
+        pkgs = import nixpkgs { inherit system; };
+      });
+    in
+    {
+      devShells = forAllSystems ({ pkgs }: {
+        default = pkgs.mkShell {
+          packages = (with pkgs; [
+            just
+            python{{ python_version.split('.')[:2] | join('') }}
+            uv
+
+            # pre-commit & linting
+            git-secrets
+            pre-commit
+          ]);
+          shellHook = ''
+            unset PYTHONPATH
+
+            # Project-local cache dir (gitignored via .direnv/). Note: never
+            # override XDG_RUNTIME_DIR here — logind owns it, and relocating it
+            # hides the Wayland/D-Bus/PipeWire sockets from anything launched
+            # in this shell (breaks clipboard, audio, portals).
+            mkdir -p "$PWD/.direnv/cache"
+            export XDG_CACHE_HOME="$PWD/.direnv/cache"
+
+            # uv configuration: local .venv, always Nix's python.
+            export UV_PROJECT_ENVIRONMENT=".venv"
+            export UV_PYTHON_DOWNLOADS="never"
+
+            if [ -f .env ]; then
+              set -a
+              source .env
+              set +a
+            fi
+
+            echo "📦 {{ product_name_display }} lib env active — run 'just' for commands."
+          '';
+          NIX_SHELL = "1";
+        };
+      });
+    };
+}

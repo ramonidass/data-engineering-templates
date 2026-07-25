@@ -1,0 +1,6 @@
+environment = "prod"
+{% if cloud == 'gcp' -%}
+project_id  = "REPLACE-with-prod-project-id"
+{%- elif cloud == 'azure' -%}
+resource_group_name = "rg-{{ project_name }}-prod"
+{%- endif %}

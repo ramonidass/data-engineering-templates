@@ -1,0 +1,22 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class JobSettings(BaseSettings):
+    """Job configuration, loaded from environment variables.
+
+    Every field can be set as {{ package_name | upper }}__<FIELD>, e.g.
+    {{ package_name | upper }}__INPUT_PATH=gs://bucket/events/.
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="{{ package_name | upper }}__",
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+    input_path: str = "data/input"
+    output_path: str = "data/output"
+    app_name: str = "{{ project_name }}"
+    # Add per-job settings here. Paths, table names and credentials always come
+    # from the environment so the same artifact runs in every environment.

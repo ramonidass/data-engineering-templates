@@ -1,0 +1,46 @@
+set dotenv-load
+
+help:
+    @just --list
+
+lint:
+    uv run ruff check .
+    uv run ruff format --check .
+
+fmt:
+    uv run ruff check --fix .
+    uv run ruff format .
+
+type-check:
+    uv run mypy src tests
+
+test:
+    uv run pytest
+
+ci: lint type-check test
+
+build:
+    uv build
+
+pre-commit-setup:
+    uv run pre-commit install
+    uv run pre-commit install --hook-type commit-msg
+
+pre-commit:
+    uv run pre-commit run --all-files
+
+dev-setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v nix &> /dev/null; then
+        echo "❌ Nix is not installed. Install it first:"
+        echo "   curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install"
+        exit 1
+    fi
+    nix develop --command bash -c '
+        set -e
+        echo "🐍 Syncing python dependencies via uv..."
+        uv sync
+        just pre-commit-setup
+        echo "✅ dev environment ready — try: just ci"
+    '

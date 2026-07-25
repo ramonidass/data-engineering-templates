@@ -1,0 +1,34 @@
+_subdirectory: "template"
+
+project_name:
+  type: str
+  help: What is the service name?
+  placeholder: my-service
+  validator: >-
+    {% if not (project_name | regex_search('^[a-z][a-z0-9\-]*$')) %}
+    project_name must be kebab-case and lowercase
+    {% endif %}
+
+product_name_display:
+  type: str
+  help: What is the display name for your product? (e.g., "My Product")
+  default: "{{ project_name | title | replace('-', ' ') }}"
+
+package_name:
+  type: str
+  default: "{{ project_name | replace('-', '_') }}"
+  when: false
+
+python_version:
+  type: str
+  help: What python version is this project going to use?
+  default: "3.12"
+  validator: >-
+    {% if not (python_version | regex_search('^3\.[0-9][0-9]?$')) %}
+    A valid python version looks like 3.12
+    {% endif %}
+
+python_line_length:
+  type: int
+  help: Maximum python line length (used by ruff)
+  default: 88
