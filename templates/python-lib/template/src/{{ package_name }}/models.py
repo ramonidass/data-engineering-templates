@@ -1,11 +1,9 @@
-"""Domain models — the typed contract this package exports.
-
+"""
 Patterns worth keeping:
 - `frozen=True` for value objects; mutation happens by constructing new
   instances, which keeps models safe to share across threads and caches.
 - Constrain at the field level (`Field(ge=..., pattern=...)`) so invalid data
   cannot be constructed at all.
-- Enums for closed vocabularies instead of bare strings.
 """
 
 from datetime import UTC, datetime
